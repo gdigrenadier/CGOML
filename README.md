@@ -1,6 +1,6 @@
 # CGOML
  A pretty terrible Generals Online compatible mod loader. Its basically meant to be a very shitty replacement for GenLauncher until Generals Online actually supports Genlauncher.
-You can download Generals Online from the official website: https://www.playgenerals.online/
+You can download Generals Online from the official website: https://www.playgenerals.online/. If i'm being honest, don't use this, it's extremely bad. It was intended solely for my friends.
 
  
 # HOW TO USE
