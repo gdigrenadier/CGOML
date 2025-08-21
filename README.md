@@ -16,7 +16,7 @@ Before use, the mods to be used by the launcher require light setup. First you m
 
 The header text should be replaced with the mod folder name and then the string should be changed as the actual mod name.
 
-After doing that, make sure to make a folder in the `Mod Files` and name it the same as you did the heading in the `mods.ini` file. After doing that, you should stick the mod files inside that folder you created. IMPORTANT: You must have the `.big` files have their extentions renamed to `.gib` as it is need to avoid generals from loading the files when you dont want them to. 
+After doing that, make sure to make a folder in the `Mod Files` and name it the same as you did the heading in the `mods.ini` file. After doing that, you should stick the mod files inside that folder you created. IMPORTANT: You must have the `.big` files have their extentions renamed to `.gib` as it is need to avoid generals from loading the files when you dont want them to. A more convienient option is to just copy the mod files from GenLaunchers `GLM` folder.
 
 # Using
 
