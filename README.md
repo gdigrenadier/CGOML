@@ -1,11 +1,12 @@
 # CGOML
  A pretty terrible Generals Online compatible mod loader. Its basically meant to be a very shitty replacement for GenLauncher until Generals Online actually supports Genlauncher.
+You can download Generals Online from the official website: https://www.playgenerals.online/
 
  
 # HOW TO USE
 
 # Compiling
-To compile you must first install AutoHotkey V2. Then, right click on the .ahk files to either compile with GUI or just compile.
+To compile you must first install AutoHotkey V2, which you can download from here: https://www.playgenerals.online/. Then, right click on the .ahk files to either compile with GUI or just compile.
 
 # Setting Up
 
