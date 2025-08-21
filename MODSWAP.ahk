@@ -56,13 +56,22 @@
 ; ++=========================-=============================================================+++++==++ 
 ; +=+++++=========-===============================================================================+= 
 ; Main GUI for launching mods — AutoHotkey v2
-
-
 #SingleInstance Force
 #Requires AutoHotkey v2.0
 
-IniFile := A_ScriptDir "\CGOML Files\INI\mods.ini"
-activeModIni := A_ScriptDir "\CGOML Files\active_mod.ini"
+IniFile       := A_ScriptDir "\CGOML Files\INI\mods.ini"
+activeModIni  := A_ScriptDir "\CGOML Files\INI\active_mod.ini"
+prefsFile     := A_ScriptDir "\CGOML Files\INI\Preferences.ini"
+wavFile       := A_ScriptDir "\CGOML Files\bog.wav"
+buttonSound   := A_ScriptDir "\CGOML Files\button.wav"
+runModExe     := A_ScriptDir "\CGOML Files\Sub Programs\RunMod.exe"
+runModAhk     := A_ScriptDir "\CGOML Files\Sub Programs\RunMod.ahk"
+
+; ==========================
+; Load Preferences
+; ==========================
+DiagnosticsEnabled := IniRead(prefsFile, "Preferences", "Diagnostics", "0")
+MusicEnabled       := IniRead(prefsFile, "Preferences", "Music", "1") ; default ON
 
 ; ==========================
 ; Load INI sections
@@ -83,6 +92,9 @@ for line in StrSplit(content, "`n")
         sections.Push(m[1])
 }
 
+if (DiagnosticsEnabled = "1")
+    MsgBox("Loaded " sections.Length " mods from mods.ini")
+
 ; ==========================
 ; Read currently active mod
 ; ==========================
@@ -96,7 +108,7 @@ if FileExist(activeModIni)
 CGOML := Gui(, "Mods GUI")
 yPos := 10
 btnMap := Map()
-btnList := Map() ; headerName -> button
+btnList := Map()
 
 for headerName in sections
 {
@@ -104,7 +116,6 @@ for headerName in sections
     if (modName = "")
         continue
 
-    ; Highlight button if it's the active mod
     btnOptions := "x10 y" yPos " w200 h30"
     if (modName = activeMod)
         btnOptions .= " BackgroundGreen"
@@ -112,14 +123,69 @@ for headerName in sections
     btn := CGOML.Add("Button", btnOptions, modName)
     btnMap[btn] := headerName
     btnList[headerName] := btn
-
-    ; Assign click event
     btn.OnEvent("Click", (thisBtn, *) => OnModClick(thisBtn, btnMap, btnList, activeModIni))
 
-    ; Add text
     CGOML.Add("Text", "x220 y" yPos " w300 h30", "Play " modName " on Generals Online")
-
     yPos += 40
+}
+
+; ==========================
+; Music Player (.wav)
+; ==========================
+player  := ComObject("WMPlayer.OCX")
+player.settings.setMode("loop", true)
+
+; Checkbox to toggle music
+chkMusic := CGOML.Add("Checkbox", "x10 y" yPos+10 " w200 h20", "Enable Background Music")
+chkMusic.Value := (MusicEnabled = "1")
+chkMusic.OnEvent("Click", (*) => ToggleMusic(chkMusic.Value))
+
+; Play music if enabled
+if (chkMusic.Value && FileExist(wavFile)) {
+    player.URL := wavFile
+    player.controls.play()
+}
+
+PlayMusic() {
+    global player
+    try player.controls.play()
+}
+
+PauseMusic() {
+    global player
+    try player.controls.pause()
+}
+
+ToggleMusic(val) {
+    global player, prefsFile, wavFile
+    if val {
+        if FileExist(wavFile) {
+            player.URL := wavFile
+            player.controls.play()
+        }
+        IniWrite("1", prefsFile, "Preferences", "Music")
+    } else {
+        try player.controls.pause()
+        IniWrite("0", prefsFile, "Preferences", "Music")
+    }
+}
+
+; ==========================
+; Detect focus changes
+; ==========================
+SetTimer(CheckFocus, 500)
+CheckFocus() {
+    global CGOML, player, chkMusic
+    hwnd := WinActive("A")
+    if (!chkMusic.Value) ; music disabled, ignore
+        return
+    if (hwnd = CGOML.Hwnd) {
+        if (player.playState != 3)
+            PlayMusic()
+    } else {
+        if (player.playState = 3)
+            PauseMusic()
+    }
 }
 
 ; ==========================
@@ -127,22 +193,38 @@ for headerName in sections
 ; ==========================
 OnModClick(btn, btnMap, btnList, activeModIni) {
     headerName := btnMap[btn]
-    Run('"' A_ScriptDir '\CGOML Files\Sub Programs\RunMod.exe" "' headerName '"')
 
-    ; Update button highlighting after launch
-    for name, button in btnList {
-        button.Opt("BackgroundDefault")
+    ; Play button sound
+    if FileExist(buttonSound) {
+        SoundPlay(buttonSound, "wait")
     }
+
+    if FileExist(runModExe) {
+        Run('"' runModExe '" "' headerName '"')
+    } else if FileExist(runModAhk) {
+        Run('"' runModAhk '" "' headerName '"')
+    } else {
+        MsgBox("Neither RunMod.exe nor RunMod.ahk could be found in Sub Programs folder.")
+        return
+    }
+
+    for name, button in btnList
+        button.Opt("BackgroundDefault")
     btn.Opt("BackgroundGreen")
 
-    ; Save active mod right away (GUI stays in sync)
     IniWrite(IniRead(A_ScriptDir "\CGOML Files\INI\mods.ini", headerName, "name", ""), activeModIni, "State", "ActiveMod")
 }
 
 ; ==========================
-; Close event
+; Exit handling
 ; ==========================
 CGOML.OnEvent("Close", (*) => ExitApp())
+OnExit(ExitCleanup)
+
+ExitCleanup(*) {
+    global player
+    try player.controls.stop()
+}
 
 CGOML.Show()
 Return
