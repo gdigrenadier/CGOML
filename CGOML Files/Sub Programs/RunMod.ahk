@@ -9,7 +9,7 @@ cgomlFilesDir := RegExReplace(cgomlSubDir, "\\Sub Programs$")
 rootDir       := RegExReplace(cgomlFilesDir, "\\CGOML Files$")
 
 mainDir     := rootDir
-modFilesDir := cgomlFilesDir "\Mod Files"
+modFilesDir := cgomlFilesDir "\Mods"
 iniDir      := cgomlFilesDir "\INI"
 activeIni   := iniDir "\mods.ini"
 
@@ -55,9 +55,10 @@ if !DirExist(modDir) {
 }
 
 ; =========================================================
-; Copy mod files
+; Copy mod files (returns true/false)
 ; =========================================================
 CopyModFiles(srcDir, destDir) {
+    success := true
     Loop Files srcDir "\*.*", "R" {
         srcFile := A_LoopFileFullPath
         relPath := SubStr(srcFile, StrLen(srcDir) + 2)
@@ -70,17 +71,31 @@ CopyModFiles(srcDir, destDir) {
         ToolTip("Copying: " relPath)
         Sleep(50)
 
-        FileCopy(srcFile, destFile, true)
+        try {
+            FileCopy(srcFile, destFile, true)
+        } catch {
+            success := false
+            ToolTip("❌ Failed to copy: " relPath)
+            Sleep(500)
+            continue
+        }
 
         ; Rename .gib → .big
         if RegExMatch(destFile, "\.gib$") {
             newFile := RegExReplace(destFile, "\.gib$", ".big")
-            FileMove(destFile, newFile, true)
-            ToolTip("Renamed: " relPath " → " newFile)
-            Sleep(50)
+            try {
+                FileMove(destFile, newFile, true)
+                ToolTip("Renamed: " relPath " → " newFile)
+                Sleep(50)
+            } catch {
+                success := false
+                ToolTip("❌ Failed to rename: " relPath)
+                Sleep(500)
+            }
         }
     }
     ToolTip()
+    return success
 }
 
 ; =========================================================
@@ -93,7 +108,6 @@ DeleteOldModFiles(oldModName, srcDir, destDir) {
     if !DirExist(oldDir)
         return
 
-    ; Walk through the old mod's folder structure
     Loop Files oldDir "\*.*", "R" {
         relPath := SubStr(A_LoopFileFullPath, StrLen(oldDir) + 2)
         targetFile := destDir "\" relPath
@@ -102,7 +116,6 @@ DeleteOldModFiles(oldModName, srcDir, destDir) {
             Sleep(50)
             FileDelete(targetFile)
         }
-        ; Also check if this file had a .gib/.big rename
         else if RegExMatch(relPath, "\.gib$") {
             altTarget := destDir "\" RegExReplace(relPath, "\.gib$", ".big")
             if FileExist(altTarget) {
@@ -119,9 +132,12 @@ DeleteOldModFiles(oldModName, srcDir, destDir) {
 ; Apply mod
 ; =========================================================
 DeleteOldModFiles(activeMod, modFilesDir, mainDir)
-CopyModFiles(modDir, mainDir)
-IniWrite(modName, activeIni, "State", "ActiveMod")
+if !CopyModFiles(modDir, mainDir) {
+    MsgBox("❌ Failed to fully apply mod '" modName "'.`nThe active mod has NOT been changed.")
+    ExitApp()
+}
 
+IniWrite(modName, activeIni, "State", "ActiveMod")
 MsgBox("✅ Mod '" modName "' applied successfully.`nAll old files removed, .gib renamed to .big.")
 
 ; =========================================================
