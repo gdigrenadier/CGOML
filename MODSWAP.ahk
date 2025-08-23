@@ -217,13 +217,15 @@ OpenPreferences(*) {
 
     PrefsGui := Gui("+Owner" CGOML.Hwnd, "Preferences")
 
-    PrefsGui.Add("Checkbox", "vchkMusic", "Enable Background Music").Value := (MusicEnabled="1")
+    ; Add a Text control for the checkbox label
+    PrefsGui.Add("Text", "x10 y10", "Enable Background Music:")
+    chkMusic := PrefsGui.Add("Checkbox", "vchkMusic x150 y10").Value := (MusicEnabled = "1")
 
-    PrefsGui.Add("Text", , "Theme:")
-    ddl := PrefsGui.Add("DropDownList", "vddlTheme w100", ["Light","Dark"])
+    PrefsGui.Add("Text", "x10 y50", "Theme:")
+    ddl := PrefsGui.Add("DropDownList", "vddlTheme x150 y50 w100", ["Light", "Dark"])
     ddl.Value := (Theme = "Dark" ? 2 : 1)
 
-    PrefsGui.Add("Button", "Default w100", "Save").OnEvent("Click", (*) => SavePreferences(PrefsGui))
+    PrefsGui.Add("Button", "Default x10 y90 w100", "Save").OnEvent("Click", (*) => SavePreferences(PrefsGui))
 
     ApplyTheme(PrefsGui, Theme)
     PrefsGui.Show()
@@ -348,7 +350,7 @@ OnModClick(btn, btnMap, btnList, activeModIni) {
 ; Clear Active Mod Files
 ; ==========================
 ClearActiveMod(*) {
-    global activeModIni, modsDir, A_ScriptDir, btnList, statusLbl, clearBtn
+    global activeModIni, modsDir, A_ScriptDir, btnList, statusLbl, clearBtn, successSound, failureSound
 
     activeMod := ""
     if FileExist(activeModIni)
@@ -357,6 +359,7 @@ ClearActiveMod(*) {
     if (activeMod = "" || activeMod = " ") {
         statusLbl.Text := "Active Mod: None"
         clearBtn.Enabled := false
+        MsgBox("ℹ️ No active mod to clear.")
         return
     }
 
@@ -370,6 +373,7 @@ ClearActiveMod(*) {
 
     gameDir := A_ScriptDir
     modPath := modsDir activeMod
+    success := true
 
     ; Walk through the active mod's files
     Loop Files modPath "\*.*", "R" {
@@ -377,34 +381,49 @@ ClearActiveMod(*) {
         targetFile := gameDir "\" relPath
 
         if FileExist(targetFile) {
-            ToolTip("Deleting: " relPath)
-            Sleep(50)
-            try FileDelete(targetFile)
+            try {
+                FileDelete(targetFile)
+            } catch {
+                success := false
+            }
         }
         ; Also handle leftover .gib → .big cases
         else if RegExMatch(relPath, "\.gib$") {
             altTarget := gameDir "\" RegExReplace(relPath, "\.gib$", ".big")
             if FileExist(altTarget) {
-                ToolTip("Deleting leftover: " SubStr(altTarget, StrLen(gameDir) + 2))
-                Sleep(50)
-                try FileDelete(altTarget)
+                try {
+                    FileDelete(altTarget)
+                } catch {
+                    success := false
+                }
             }
         }
     }
-    ToolTip()
 
     ; Clear active mod in INI
-    IniWrite("", activeModIni, "State", "ActiveMod")
+    if success {
+        IniWrite("", activeModIni, "State", "ActiveMod")
 
-    ; Reset button highlighting
-    for name, button in btnList
-        button.Opt("BackgroundDefault")
+        ; Reset button highlighting
+        for name, button in btnList
+            button.Opt("BackgroundDefault")
 
-    ; Update status indicator
-    statusLbl.Text := "Active Mod: None"
+        ; Update status indicator
+        statusLbl.Text := "Active Mod: None"
 
-    ; Disable Clear button since no mod is active
-    clearBtn.Enabled := false
+        ; Disable Clear button since no mod is active
+        clearBtn.Enabled := false
+
+        ; Play success sound and show message
+        if FileExist(successSound)
+            SoundPlay(successSound, "false")
+        MsgBox("✅ Active mod '" activeMod "' has been successfully cleared.")
+    } else {
+        ; Play failure sound and show error message
+        if FileExist(failureSound)
+            SoundPlay(failureSound, "false")
+        MsgBox("❌ Failed to fully clear the active mod '" activeMod "'.")
+    }
 }
 
 ; ==========================
