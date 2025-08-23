@@ -65,6 +65,8 @@ prefsFile     := A_ScriptDir "\CGOML Files\INI\Preferences.ini"
 modsDir       := A_ScriptDir "\CGOML Files\Mods\"
 wavFile       := A_ScriptDir "\CGOML Files\bog.wav"
 buttonSound   := A_ScriptDir "\CGOML Files\button.wav"
+successSound  := A_ScriptDir "\CGOML Files\incredible.wav"
+failureSound  := A_ScriptDir "\CGOML Files\failure.wav"
 runModExe     := A_ScriptDir "\CGOML Files\Sub Programs\RunMod.exe"
 runModAhk     := A_ScriptDir "\CGOML Files\Sub Programs\RunMod.ahk"
 
@@ -162,7 +164,9 @@ BuildModList() {
     }
 
     if (DiagnosticsEnabled = "1")
+        SoundPlay(successSound, "false")
         MsgBox("Detected " sections.Length " mods total")
+        
 
     ; Read active mod
     activeMod := ""

@@ -5,22 +5,27 @@
 ; Paths (based on folder layout)
 ; =========================================================
 cgomlSubDir   := A_ScriptDir
-cgomlFilesDir := RegExReplace(cgomlSubDir, "\\Sub Programs$")
-rootDir       := RegExReplace(cgomlFilesDir, "\\CGOML Files$")
+cgomlFilesDir := SubStr(A_ScriptDir, 1, InStr(A_ScriptDir, "\", 0, -1) - 1)
+rootDir       := SubStr(cgomlFilesDir, 1, InStr(cgomlFilesDir, "\", 0, -1) - 1)
 
 mainDir     := rootDir
 modFilesDir := cgomlFilesDir "\Mods"
 iniDir      := cgomlFilesDir "\INI"
 activeIni   := iniDir "\mods.ini"
+successSound:= cgomlFilesDir "incredible.wav"
+failureSound:= cgomlFilesDir "failure.wav"
+
 
 ; =========================================================
 ; Ensure required folders exist
 ; =========================================================
 if !DirExist(modFilesDir) {
+    ;SoundPlay(failureSound, "false")
     MsgBox("❌ Mod Files folder not found:`n" modFilesDir)
     ExitApp()
 }
 if !DirExist(iniDir) {
+    ;SoundPlay(failureSound, "false")
     MsgBox("❌ INI folder not found:`n" iniDir)
     ExitApp()
 }
@@ -37,6 +42,7 @@ activeMod := IniRead(activeIni, "State", "ActiveMod", "")
 ; Parse command line arguments
 ; =========================================================
 if (A_Args.Length < 1) {
+    ;SoundPlay(failureSound, "false")
     MsgBox("❌ No mod name provided.")
     ExitApp()
 }
@@ -50,6 +56,7 @@ if (modName = activeMod) {
 
 modDir := modFilesDir "\" modName
 if !DirExist(modDir) {
+    ;SoundPlay(failureSound, "false")
     MsgBox("❌ Mod folder not found:`n" modDir)
     ExitApp()
 }
@@ -75,6 +82,7 @@ CopyModFiles(srcDir, destDir) {
             FileCopy(srcFile, destFile, true)
         } catch {
             success := false
+            ;SoundPlay(failureSound, "false")
             ToolTip("❌ Failed to copy: " relPath)
             Sleep(500)
             continue
@@ -89,6 +97,7 @@ CopyModFiles(srcDir, destDir) {
                 Sleep(50)
             } catch {
                 success := false
+                ;SoundPlay(failureSound, "false")
                 ToolTip("❌ Failed to rename: " relPath)
                 Sleep(500)
             }
@@ -133,11 +142,13 @@ DeleteOldModFiles(oldModName, srcDir, destDir) {
 ; =========================================================
 DeleteOldModFiles(activeMod, modFilesDir, mainDir)
 if !CopyModFiles(modDir, mainDir) {
+    ;SoundPlay(failureSound, "false")
     MsgBox("❌ Failed to fully apply mod '" modName "'.`nThe active mod has NOT been changed.")
     ExitApp()
 }
 
 IniWrite(modName, activeIni, "State", "ActiveMod")
+;SoundPlay(successSound, "false")
 MsgBox("✅ Mod '" modName "' applied successfully.`nAll old files removed, .gib renamed to .big.")
 
 ; =========================================================
@@ -147,6 +158,7 @@ RunGenerals() {
     global mainDir
     exePath := mainDir "\GeneralsOnlineZH_30.exe"
     if !FileExist(exePath) {
+        ;SoundPlay(failureSound, "false")
         MsgBox("❌ Cannot find Generals executable:`n" exePath)
         return
     }
